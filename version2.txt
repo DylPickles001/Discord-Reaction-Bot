@@ -1,0 +1,47 @@
+#had a similar error to version 1, although no direct message- I got the bot to add a reaction through a long command, but no automated role assignment..
+
+import discord
+from discord.ext import commands
+import os
+from keep_alive import keep_alive
+
+intents = discord.Intents.all()
+client = commands.Bot(command_prefix = '$', intents = intents)
+
+class clientData:
+  def __init__(self):
+    self.welcome_channel = None
+    self.goodbye_channel = None
+
+clientData = clientData()
+
+@client.event
+async def on_ready():
+  print('We have logged in as {0.user}'.format(client))
+  client.reaction_roles = []
+
+#action by bot
+@client.event
+async def on_raw_reaction_add(payload):
+  for role, msg, emoji in client.reaction_roles:
+    if msg.id == payload.message_id and emoji == payload.emoji.name:
+      await payload.member.add_roles(client.get_guild(payload.guild_id).get_role(role))
+      return
+
+@client.event
+async def on_raw_reaction_remove(payload):
+  for role, msg, emoji in client.reaction_roles:
+    if msg.id == payload.message_id and emoji == payload.emoji.name:
+      await client.get_guild(payload.guild_id).get_member(payload.member_id).remove_roles(role)
+
+@client.command()
+async def set_reaction(ctx, role: discord.Role=None, msg: discord.Message=None, emoji = None):
+  if role != None and msg != None and emoji != None:
+    await msg.add_reaction(emoji)
+    client.reaction_roles.append((role, msg, emoji))
+  else:
+    await ctx.send("Invalid arguments")
+
+#runs bot
+keep_alive()
+client.run(os.getenv('TOKEN'))
